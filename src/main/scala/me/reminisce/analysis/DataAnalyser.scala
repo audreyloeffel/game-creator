@@ -425,9 +425,8 @@ class DataAnalyser(userId: String, db: DefaultDB) extends Actor with ActorLoggin
     }
 
     val userSummariesCollection = db[BSONCollection](MongoCollections.userSummaries)
-
     val summaryWithNewCounts = userSummaryWithNewCounts(newReactioners, newItemsSummaries, friends, userSummary)
-    val finalSummary = updateCommmentsAndReactionsSummaries(fbPosts, summaryWithNewCounts, userSummariesCollection, blacklist)
+    val finalSummary = updateCommmentsAndReactionsSummaries(fbPosts, summaryWithNewCounts, blacklist)
     val selector = BSONDocument("userId" -> userId)
     userSummariesCollection.update(selector, finalSummary, upsert = true)
     analysingFor.remove(userId)
@@ -435,14 +434,14 @@ class DataAnalyser(userId: String, db: DefaultDB) extends Actor with ActorLoggin
   }
 
   /**
-    * Update commentsSummaries and reactionsSummaries in userSummaries
-    *
-    * @param posts                   posts to handle
-    * @param userSummariesCollection userSummaries to update
-    */
-  private def updateCommmentsAndReactionsSummaries(posts: List[FBPost], stats: UserSummary, userSummariesCollection: BSONCollection, blacklist: Set[FBFrom]) = {
+   * Update commentsSummaries and reactionsSummaries in userSummaries
+   * 
+   * @param posts 											posts to handle
+   * @param userSummariesCollection			userSummaries to update
+   */
+  private def updateCommmentsAndReactionsSummaries(posts : List[FBPost], stats: UserSummary, blacklist: Set[FBFrom]): UserSummary = {
     //count comments
-    val postsFiltered = posts.filterNot {
+    val postsFiltered = posts.filterNot { 
       _.from match {
         case Some(from) => blacklist.contains(from)
         case None => true
@@ -453,17 +452,34 @@ class DataAnalyser(userId: String, db: DefaultDB) extends Actor with ActorLoggin
     val commentsCounter = allUserIds.groupBy(x => x).mapValues(_.size)
 
     //count reactions
-    val reacts = (for {
-      p <- postsFiltered
-      reactions <- p.reactions
-    } yield reactions.filterNot(reac => blacklist.contains(reac.from)).map(_.from.userId)).flatten
-
+    val reacts = (
+        for {
+          p <- postsFiltered
+          reactions <- p.reactions 
+        } yield reactions.filterNot(reac => blacklist.contains(reac.from)).map(_.from.userId)
+      ).flatten   
+      
     // Map reactioners -> reactionsCount
     val reactsCounter = reacts.groupBy(x => x).mapValues(_.size)
-
-    stats.copy(commentersCommentsCount = commentsCounter, reactionersReactionsCount = reactsCounter)
+    
+    // Map reactioners -> allReactionCount
+    val allReactionsCounter = mapWihtValuesSummed[String](reactsCounter, commentsCounter)
+   
+    // Update userSummaryCollections
+    stats.copy(commentersCommentsCount = commentsCounter , reactionersReactionsCount = reactsCounter, allReactionsCount = allReactionsCounter)
   }
 
+  /**
+   * Merge two Maps and sum the values of the shared keys
+   * 
+   * @param m1 First Map
+   * @param m2 Second Map
+   * @return the merged Maps
+   */
+  private def mapWihtValuesSummed[K](m1: Map[K, Int], m2: Map[K, Int]): Map[K, Int] = {
+    m1 ++ m2.map{ case (k,v) => k -> (v + m1.getOrElse(k,0)) }
+  } 
+  
   /**
     * Gets reactions from a list of posts
     *
@@ -477,7 +493,7 @@ class DataAnalyser(userId: String, db: DefaultDB) extends Actor with ActorLoggin
       }
     }
   }
-
+  
   /**
     * Update post items summaries based on the number of reactioners
     *

@@ -61,7 +61,6 @@ class WhenDidYouLikeThisPage(db: DefaultDB) extends TimeQuestionGenerator {
           val maybeTimelineQuestion =
             for {
               pageLike <- mayBePageLike
-              page <- maybePage
             }
               yield {
                 val actualDate = pageLike.likeTime
@@ -72,7 +71,7 @@ class WhenDidYouLikeThisPage(db: DefaultDB) extends TimeQuestionGenerator {
                     val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
                     TimelineQuestion(userId, Timeline, TLWhenDidYouLikeThisPage, Some(pageSubject),
                       actualDate.toString(formatter), min.toString(formatter), max.toString(formatter),
-                      default.toString(formatter), unit, step, threshold)
+                      default.toString(formatter), unit, stepWithDifficulty(None, step), threshold)
                 }
               }
           maybeTimelineQuestion match {
@@ -83,11 +82,10 @@ class WhenDidYouLikeThisPage(db: DefaultDB) extends TimeQuestionGenerator {
           }
         }) onFailure {
         case e =>
-          client ! MongoDBError(s"${e.getMessage}")
+          client ! NotEnoughData(s"Page or pagelike not found : user $userId, page $itemId")
       }
 
     case any =>
       log.error(s"Unknown message : $any.")
   }
-
 }

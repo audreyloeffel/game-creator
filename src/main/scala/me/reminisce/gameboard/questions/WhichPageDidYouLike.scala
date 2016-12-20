@@ -54,12 +54,13 @@ class WhichPageDidYouLike(db: DefaultDB) extends QuestionGenerator {
               val queryNotLiked = BSONDocument(
                 "pageId" -> BSONDocument("$nin" -> ids)
               )
-              getDocuments[FBPage](db, pagesCollection, queryNotLiked, 3).onComplete {
+              getDocuments[FBPage](db, pagesCollection, queryNotLiked, 40).onComplete {
                 case Success(listPages) =>
                   if (listPages.length < 3) {
                     client ! NotEnoughData(s"Unable to create question : not enough not liked pages.")
                   } else {
-                    val possibilities = (page :: listPages).map {
+                    val choices = getChoices(None, listPages)
+                    val possibilities = (page :: choices).map {
                       pge =>
                         val url = pge.photos match {
                           case Some(p) => p.source
@@ -88,5 +89,18 @@ class WhichPageDidYouLike(db: DefaultDB) extends QuestionGenerator {
     case any =>
       log.error(s"WhichPageDidYouLike received a unexpected message $any")
   }
-
+  
+  /**
+   * Get 3 choices. The size of the pool from which there are chosen follows:
+   * y = -30*difficulty + 40 (This is arbitrary)
+   * 
+   * @param difficulty User difficulty for question
+   * @param listPages List of potential FBpage as choices
+   * @return 3 FBpages as a List
+   */
+  private def getChoices(difficulty: Option[Double], listPages: List[FBPage]): List[FBPage] = {
+    val sortedList = listPages.sortBy(-_.likesNumber)
+    val pool = Random.shuffle(sortedList.take((-30*difficulty.getOrElse(0.0)+40).toInt))
+    pool.take(3)
+  }
 }

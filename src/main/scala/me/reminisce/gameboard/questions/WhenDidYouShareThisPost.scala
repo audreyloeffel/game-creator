@@ -50,6 +50,7 @@ class WhenDidYouShareThisPost(db: DefaultDB) extends TimeQuestionGenerator {
         "userId" -> userId,
         "postId" -> itemId
       )
+      
       val postCollection = db[BSONCollection](MongoCollections.fbPosts)
       postCollection.find(query).one[FBPost].onComplete {
         case Success(maybePost) =>
@@ -64,7 +65,7 @@ class WhenDidYouShareThisPost(db: DefaultDB) extends TimeQuestionGenerator {
                 case (min, default, max, unit, step) =>
                   val tlQuestion = TimelineQuestion(userId, Timeline, TLWhenDidYouShareThisPost, Some(postSubject),
                     actualDate.toString(formatter), min.toString(formatter), max.toString(formatter),
-                    default.toString(formatter), unit, step, threshold)
+                    default.toString(formatter), unit, stepWithDifficulty(None, step), threshold)
                   client ! FinishedQuestionCreation(tlQuestion)
               }
             case None =>

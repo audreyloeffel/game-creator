@@ -5,6 +5,7 @@ import me.reminisce.analysis.DataTypes._
 import me.reminisce.database.MongoDBEntities.FBComment.simpleReactionFromComment
 import me.reminisce.database.MongoDBEntities.{AbstractReaction, FBFriend, FBFrom}
 import me.reminisce.fetching.config.GraphResponses.Friend
+import me.reminisce.database.MongoDBEntities.{FBReaction, FBFrom}
 import me.reminisce.gameboard.board.GameboardEntities.{QuestionKind, strToKind}
 import reactivemongo.bson._
 
@@ -201,8 +202,9 @@ object AnalysisEntities {
                          friends: Set[FBFriend] = Set(),
                          blacklist: Option[Set[FBFrom]] = None,
                          commentersCommentsCount: Map[String, Int] = Map(),
-                         reactionersReactionsCount: Map[String, Int] = Map())
-
+                         reactionersReactionsCount: Map[String, Int] = Map(),
+                         allReactionsCount: Map[String, Int] = Map())
+                         
   object UserSummary {
 
     def getMapStringIntWriter(implicit intWriter: BSONWriter[Int, BSONInteger]): BSONDocumentWriter[Map[String, Int]] = {
@@ -276,7 +278,7 @@ object AnalysisEntities {
     implicit val mapStringIntReader = getMapStringIntReader
 
     implicit val mapKindIntWriter = getMapKindIntWriter
-
+    
     implicit val mapKindIntReader = getMapKindIntReader
 
     implicit val mapDataTypeIntReader = getMapDataTypeIntReader
