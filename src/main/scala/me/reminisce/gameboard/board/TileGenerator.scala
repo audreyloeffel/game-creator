@@ -89,6 +89,8 @@ class TileGenerator(db: DefaultDB) extends QuestionGenerator {
               Some(context.actorOf(WhichPageDidYouLike.props(db)))
             case reaction: ReactionType =>
               Some(context.actorOf(WhoReactedToYourPost.props(db, reaction)))
+            case FriendWhoIsYours =>
+              Some(context.actorOf(WhoIsYourFriend.props(db)))
             case _ =>
               None
           }
@@ -143,6 +145,6 @@ class TileGenerator(db: DefaultDB) extends QuestionGenerator {
       client ! FailedTileCreation(s"Not enough data : $message")
 
     case any =>
-      log.error(s"Tile generator received an unknown messgae : $any.")
+      log.error(s"Tile generator received an unknown message : $any.")
   }
 }

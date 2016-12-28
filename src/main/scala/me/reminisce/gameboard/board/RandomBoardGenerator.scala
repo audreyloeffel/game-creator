@@ -98,7 +98,8 @@ abstract class RandomBoardGenerator(database: DefaultDB, userId: String, strateg
             }
           kindList.zip(selectedTypes)
       }
-      generateWithKindTypePairs(List(), pairsKindType, client)
+
+      generateWithKindTypePairs(userSummary, List(), pairsKindType, client)
 
     } else {
       log.error(s"Not enough question kinds for user $userId.")
@@ -115,50 +116,63 @@ abstract class RandomBoardGenerator(database: DefaultDB, userId: String, strateg
     * @param pairsKindType    remaining (QuestionKind, DataType) pairs
     * @param client           original requester
     */
-  protected def generateWithKindTypePairs(alreadyGenerated: List[(QuestionKind, DataType, List[(String, ItemType)])],
+  protected def generateWithKindTypePairs(userSummary: UserSummary, alreadyGenerated: List[(QuestionKind, DataType, List[(String, ItemType)])],
                                           pairsKindType: List[(QuestionKind, DataType)], client: ActorRef): Unit = pairsKindType match {
     case (cKind, cType) :: tail =>
       //Partitions into two : the ones matching the same kind/type as the head and the rest
       pairsKindType.partition { case (kind, dType) => (kind == cKind) && (dType == cType) } match {
         case (current, rest) =>
-          val itemsSummariesCollection = database[BSONCollection](MongoCollections.itemsSummaries)
-          val query = BSONDocument("userId" -> userId, "dataTypes" -> BSONDocument("$in" -> List(cType.name)))
-          findSomeRandom[ItemSummary](itemsSummariesCollection, query, client) {
-            itemsSummaries =>
-              cKind match {
-                case Order =>
-                  if (itemsSummaries.length >= orderingItemsNumber * current.length) {
-                    // groups the retrieved summary by item type
-                    val groups = itemsSummaries.groupBy(is => is.itemType).toList.map {
-                      case (itemType, list) => list.map(itemSummary => (itemSummary.itemId, itemSummary.itemType))
-                    }
-                    // generate buckets of items to order
-                    val randomBuckets = Random.shuffle(groups.flatMap(list => createBuckets[(String, ItemType)](list, orderingItemsNumber)))
-                    if (randomBuckets.length >= current.length) {
-                      // associate the (kind, type) tuples with a bucket
-                      val newFound = current.zip(randomBuckets).map {
-                        case ((kind, dType), v) => (kind, dType, v)
+          cType match {
+            case FriendWhoIsYours =>
+              val nbr = current.size
+              val selectedFriends = Random.shuffle(userSummary.friends).take(nbr)
+              println(selectedFriends)
+              val newFound = current.zip(selectedFriends).map {
+                case ((kind, tpe), friend) => (kind, tpe, List((friend.name, FriendType)))
+              }
+              generateWithKindTypePairs(userSummary, alreadyGenerated ++ newFound, rest, client)
+
+            case _ =>      
+              val itemsSummariesCollection = database[BSONCollection](MongoCollections.itemsSummaries)
+              val query = BSONDocument("userId" -> userId, "dataTypes" -> BSONDocument("$in" -> List(cType.name)))
+              findSomeRandom[ItemSummary](itemsSummariesCollection, query, client) {
+                itemsSummaries =>
+                  cKind match {
+                    case Order =>
+                      if (itemsSummaries.length >= orderingItemsNumber * current.length) {
+                        // groups the retrieved summary by item type
+                        val groups = itemsSummaries.groupBy(is => is.itemType).toList.map {
+                          case (itemType, list) => list.map(itemSummary => (itemSummary.itemId, itemSummary.itemType))
+                        }
+                        // generate buckets of items to order
+                        val randomBuckets = Random.shuffle(groups.flatMap(list => createBuckets[(String, ItemType)](list, orderingItemsNumber)))
+                        if (randomBuckets.length >= current.length) {
+                          // associate the (kind, type) tuples with a bucket
+                          val newFound = current.zip(randomBuckets).map {
+                            case ((kind, dType), v) => (kind, dType, v)
+                          }
+                          generateWithKindTypePairs(userSummary, alreadyGenerated ++ newFound, rest, client)
+                        } else {
+                          log.error(s"Not enough buckets generated for user $userId.")
+                          client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
+                        }
+                      } else {
+                        log.error(s"Not enough items for ordering on user $userId.")
+                        client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
                       }
-                      generateWithKindTypePairs(alreadyGenerated ++ newFound, rest, client)
-                    } else {
-                      log.error(s"Not enough buckets generated for user $userId.")
-                      client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
-                    }
-                  } else {
-                    log.error(s"Not enough items for ordering on user $userId.")
-                    client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
+                    case _ =>
+                      if (itemsSummaries.length >= current.length) {
+                        //associate the (kind, type) tuples to values
+                        val newFound = current.zip(itemsSummaries.map(is => (is.itemId, is.itemType))).map {
+                          case ((kind, dType), v) => (kind, dType, List(v))
+                        }
+                        generateWithKindTypePairs(userSummary, alreadyGenerated ++ newFound, rest, client)
+                      } else {
+                        log.error(s"Not enough items on user $userId.")
+                        client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
+                      }
                   }
-                case _ =>
-                  if (itemsSummaries.length >= current.length) {
-                    //associate the (kind, type) tuples to values
-                    val newFound = current.zip(itemsSummaries.map(is => (is.itemId, is.itemType))).map {
-                      case ((kind, dType), v) => (kind, dType, List(v))
-                    }
-                    generateWithKindTypePairs(alreadyGenerated ++ newFound, rest, client)
-                  } else {
-                    log.error(s"Not enough items on user $userId.")
-                    client ! FailedBoardGeneration(s"Failed to generate board for user $userId : not enough data.")
-                  }
+
               }
           }
       }

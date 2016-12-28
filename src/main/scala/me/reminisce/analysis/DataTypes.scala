@@ -43,6 +43,9 @@ object DataTypes {
 
   case object PageLikeNumber extends DataType("PageLikeNumber")
 
+  // Friends
+  case object FriendWhoIsYours extends DataType("FriendWhoIsYours")
+
   // Both
   case object Time extends DataType("Time")
 
@@ -54,15 +57,18 @@ object DataTypes {
 
   case object PageType extends ItemType("Page")
 
+  case object FriendType extends ItemType("Item")
+
   def strToItemType(typeName: String): ItemType = typeName match {
     case PostType.name => PostType
     case PageType.name => PageType
+    case FriendType.name => FriendType
   }
 
   val kindToTypes = Map[QuestionKind, List[DataType]](
     MultipleChoice ->
-      List(PostWhoReacted, PostWhoCommented, PageWhichLiked, PostWhoLiked,
-          PostWhoWowed, PostWhoLaughed, PostWhoLoved, PostWhoGotSad, PostWhoGotAngry),
+      List(PostWhoReacted, PostWhoCommented, PageWhichLiked, PostWhoLiked, PostWhoWowed, PostWhoLaughed, PostWhoLoved,
+        PostWhoGotSad, PostWhoGotAngry, FriendWhoIsYours),
     Timeline ->
       List(Time),
     Geolocation ->
@@ -95,6 +101,7 @@ object DataTypes {
     case PostWhoGotSad.name => PostWhoGotSad
     case PostWhoGotAngry.name => PostWhoGotAngry
     case PageLikeNumber.name => PageLikeNumber
+    case FriendWhoIsYours.name => FriendWhoIsYours
     case Time.name => Time
   }
 

@@ -30,6 +30,7 @@ object GameboardEntities {
   case object MCWhoReactedToYourPostWithLOVE extends SpecificQuestionType("MCWhoReactedToYourPostWithLOVE")
   case object MCWhoReactedToYourPostWithSAD extends SpecificQuestionType("MCWhoReactedToYourPostWithSAD")
   case object MCWhoReactedToYourPostWithANGRY extends SpecificQuestionType("MCWhoReactedToYourPostWithANGRY")
+  case object MCWhoIsYourFriend extends SpecificQuestionType("MCWhoIsYourFriend")
 
   case object ORDPageLikes extends SpecificQuestionType("ORDPageLikes")
   case object ORDPostCommentsNumber extends SpecificQuestionType("ORDPostCommentsNumber")
@@ -52,6 +53,7 @@ object GameboardEntities {
     case MCWhoReactedToYourPostWithANGRY.name => MCWhoReactedToYourPostWithANGRY
     case ORDPageLikes.name => ORDPageLikes
     case ORDPageLikeTime.name => ORDPageLikeTime
+    case MCWhoIsYourFriend.name => MCWhoIsYourFriend
   }
 
   sealed abstract class QuestionKind(id: String) extends NamedCaseClass {
@@ -101,6 +103,7 @@ object GameboardEntities {
   case object VideoPost extends SubjectType("VideoPost")
   case object LinkPost extends SubjectType("LinkPost")
   case object CommentSubject extends SubjectType("Comment")
+  case object Empty extends SubjectType("Empty")
 
   def strToSubjectType(string: String): SubjectType = string match {
     case PageSubject.name => PageSubject
@@ -109,6 +112,7 @@ object GameboardEntities {
     case VideoPost.name => VideoPost
     case LinkPost.name => LinkPost
     case CommentSubject.name => CommentSubject
+    case Empty.name => Empty
   }
 
   /**
@@ -158,7 +162,7 @@ object GameboardEntities {
   }
 
   case class CommentSubject(comment: String, post: PostSubject, `type`: SubjectType = CommentSubject) extends Subject(`type`)
-
+  case object EmptySubject extends Subject(Empty)
 
   /**
     * Abstract game question

@@ -159,7 +159,8 @@ object DataAnalyser {
     * @param itemId         item to look for
     * @param itemType       type of the item
     * @param itemsSummaries list of items summaries
-    * @return found item summary
+    * 
+    @return found item summary
     */
   def getItemSummary(userId: String, itemId: String, itemType: ItemType, itemsSummaries: List[ItemSummary]): ItemSummary = {
     itemsSummaries.filter(is => is.userId == userId && is.itemId == itemId) match {
@@ -182,10 +183,11 @@ object DataAnalyser {
     */
   def userSummaryWithNewCounts(newReactioners: Set[AbstractReaction], newItemsSummaries: List[ItemSummary], friends: Set[Friend],
                                userSummary: UserSummary): UserSummary = {
+    val notFriendReactionersNumber = newReactioners.filterNot(react => (friends.exists(friend => friend.name == react.from.userName) || react.from.userId == userSummary.userId)).size
     val newDataTypes = newItemsSummaries.foldLeft(userSummary.dataTypeCounts) {
       case (acc, itemSummary) => addTypesToMap[DataType](itemSummary.dataTypes.map(dType => (dType, 1)), acc)
-    }
-
+    }  ++ (if(notFriendReactionersNumber >= 3) Map(FriendWhoIsYours -> friends.size) else Map())
+    
     // One has to be careful as the count for order is just the count of items that have a data type suited for ordering
     // Ordering have to be a multiple of the number of items to order
     val newQuestionCounts: Map[QuestionKind, Int] = newDataTypes.foldLeft(Map[QuestionKind, Int]()) {
