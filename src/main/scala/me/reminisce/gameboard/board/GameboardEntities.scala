@@ -118,26 +118,44 @@ object GameboardEntities {
     */
   abstract sealed class Subject(`type`: SubjectType)
 
-  abstract sealed class PostSubject(`type`: SubjectType, text: String, from: Option[FBFrom]) extends Subject(`type`)
+  abstract sealed class PostSubject(`type`: SubjectType, val text: String, from: Option[FBFrom]) extends Subject(`type`) {
+    def withUpdatedText(newText: String): PostSubject
+  }
 
   case class PageSubject(name: String, pageId: String,
                          photoUrl: Option[String],
                          `type`: SubjectType = PageSubject) extends Subject(`type`)
 
-  case class TextPostSubject(text: String, `type`: SubjectType = TextPost,
-                             from: Option[FBFrom]) extends PostSubject(`type`, text, from)
+  case class TextPostSubject(override val text: String, `type`: SubjectType = TextPost,
+                             from: Option[FBFrom]) extends PostSubject(`type`, text, from) {
+    override def withUpdatedText(newText: String): TextPostSubject = {
+      this.copy(text = newText)
+    }
+  }
 
-  case class ImagePostSubject(text: String, imageUrl: Option[String], facebookImageUrl: Option[String],
+  case class ImagePostSubject(override val text: String, imageUrl: Option[String], facebookImageUrl: Option[String],
                               `type`: SubjectType = ImagePost,
-                              from: Option[FBFrom]) extends PostSubject(`type`, text, from)
+                              from: Option[FBFrom]) extends PostSubject(`type`, text, from) {
+    override def withUpdatedText(newText: String): ImagePostSubject = {
+      this.copy(text = newText)
+    }
+  }
 
-  case class VideoPostSubject(text: String, thumbnailUrl: Option[String], url: Option[String],
+  case class VideoPostSubject(override val text: String, thumbnailUrl: Option[String], url: Option[String],
                               `type`: SubjectType = VideoPost,
-                              from: Option[FBFrom]) extends PostSubject(`type`, text, from)
+                              from: Option[FBFrom]) extends PostSubject(`type`, text, from) {
+    override def withUpdatedText(newText: String): VideoPostSubject = {
+      this.copy(text = newText)
+    }
+  }
 
-  case class LinkPostSubject(text: String, thumbnailUrl: Option[String], url: Option[String],
+  case class LinkPostSubject(override val text: String, thumbnailUrl: Option[String], url: Option[String],
                              `type`: SubjectType = LinkPost,
-                             from: Option[FBFrom]) extends PostSubject(`type`, text, from)
+                             from: Option[FBFrom]) extends PostSubject(`type`, text, from) {
+    override def withUpdatedText(newText: String): LinkPostSubject = {
+      this.copy(text = newText)
+    }
+  }
 
   case class CommentSubject(comment: String, post: PostSubject, `type`: SubjectType = CommentSubject) extends Subject(`type`)
 
@@ -180,18 +198,14 @@ object GameboardEntities {
                           ) extends GameQuestion(userId, kind, `type`, subject)
 
   case class SubjectWithId(subject: Subject, uId: Int)
-  
+
   case class Possibility(name: String, imageUrl: Option[String], `type`: String, fbId: Option[String] = None)
 
   case class GeolocationQuestion(userId: String,
                                  kind: QuestionKind,
                                  `type`: SpecificQuestionType,
                                  subject: Option[Subject],
-                                 answer: FBLocation,
-                                 defaultLocation: Location,
-                                 range: Double) extends GameQuestion(userId, kind, `type`, subject)
-
-  case class Location(latitude: Double, longitude: Double)
+                                 answer: FBLocation) extends GameQuestion(userId, kind, `type`, subject)
 
   case class Tile(`type`: QuestionKind,
                   question1: GameQuestion,

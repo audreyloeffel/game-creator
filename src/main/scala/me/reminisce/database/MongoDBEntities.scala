@@ -39,7 +39,7 @@ object MongoDBEntities {
     implicit val fbTagFormat = Macros.handler[FBTag]
   }
 
-  case class FBPhoto(id: String, source: Option[String], createdTime: Option[String], tags: Option[List[FBTag]])
+  case class FBPhoto(id: String, source: Option[String], createdTime: Option[DateTime], tags: Option[List[FBTag]])
 
   object FBPhoto {
     implicit val fbPhotoFormat = Macros.handler[FBPhoto]
@@ -128,7 +128,7 @@ object MongoDBEntities {
   }
 
   case class FBPlace(id: Option[String], name: Option[String], location: FBLocation,
-                     createdTime: Option[String])
+                     createdTime: Option[DateTime])
 
   object FBPlace {
     implicit val fbPlace = Macros.handler[FBPlace]
@@ -142,7 +142,7 @@ object MongoDBEntities {
                     message: Option[String] = None,
                     story: Option[String] = None,
                     place: Option[FBPlace] = None,
-                    createdTime: Option[String] = None,
+                    createdTime: Option[DateTime] = None,
                     from: Option[FBFrom] = None,
                     reactions: Option[Set[FBReaction]] = None,
                     reactionCount: Option[Int] = None,

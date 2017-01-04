@@ -106,7 +106,7 @@ class GameboardGeneratorSpec extends DatabaseTester("GameBoardGeneratorSpec") {
           case Some(s) => validateSubject(s)
           case None => fail("Subject not defined")
         }
-      case GeolocationQuestion(uid, kind, tpe, subject, answer, defaultLocation, range) =>
+      case GeolocationQuestion(uid, kind, tpe, subject, answer) =>
         subject match {
           case Some(s) => validateSubject(s)
           case None => fail("Subject not defined")

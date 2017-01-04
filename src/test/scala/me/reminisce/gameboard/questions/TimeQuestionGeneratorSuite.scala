@@ -8,7 +8,7 @@ class TimeQuestionGeneratorSuite extends FunSuite {
   test("Testing range generation.") {
     // Use a set date to avoid glitches with special dates like the 29th of February
     val formatter = DateTimeFormat.forPattern("dd MMM HH:mm:ss yyyy").withZone(DateTimeZone.UTC)
-    val refDate = formatter.parseDateTime("21 Sep 17:02:02 2016")
+    val refDate = formatter.parseDateTime("22 Sep 17:02:02 2016")
     val oneYearAgo = refDate - 1.year
     val twoYearsAgo = refDate - 2.year
     val twoMonthsAgo = refDate - 2.month

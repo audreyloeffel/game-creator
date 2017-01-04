@@ -2,16 +2,17 @@ package me.reminisce.gameboard.questions
 
 import akka.actor.Props
 import akka.event.Logging
+import com.github.nscala_time.time.Imports._
 import me.reminisce.database.MongoCollections
 import me.reminisce.database.MongoDBEntities.FBPost
-import me.reminisce.gameboard.board.GameboardEntities.{GeoWhatCoordinatesWereYouAt, Geolocation, GeolocationQuestion, Location}
+import me.reminisce.gameboard.board.GameboardEntities._
 import me.reminisce.gameboard.questions.QuestionGenerator.{CreateQuestion, FinishedQuestionCreation, MongoDBError, NotEnoughData}
 import reactivemongo.api.DefaultDB
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Random, Success}
+import scala.util.{Failure, Success}
 
 /**
   * Factory for [[me.reminisce.gameboard.questions.WhichCoordinatesWereYouAt]]
@@ -25,7 +26,7 @@ object WhichCoordinatesWereYouAt {
     * @return props for the created actor
     */
   def props(database: DefaultDB): Props =
-  Props(new WhichCoordinatesWereYouAt(database))
+    Props(new WhichCoordinatesWereYouAt(database))
 }
 
 /**
@@ -56,21 +57,13 @@ class WhichCoordinatesWereYouAt(db: DefaultDB) extends QuestionGenerator {
           val maybeQuestion =
             for {
               post <- postOpt
-              //we can't use the postSubject, as it contains the story which contains the actual location
-              postSubject = QuestionGenerator.subjectFromPost(post, includeStory = false)
               place <- post.place
             } yield {
               val answer = place.location
-              //magic numbers
-              val maxDisplacement = 0.03166666666
-              val minDisplacement = 0.02743473384
-              val t = Random.nextDouble() * (maxDisplacement - minDisplacement) + minDisplacement
-              val theta = Random.nextDouble() * 2 * math.Pi
-              val defaultLocation = Location(place.location.latitude + t * math.sin(theta), place.location.longitude + t * math.cos(theta))
-              //magic number, around 2 kilometers
-              val range = 0.02612831795
-              GeolocationQuestion(userId, Geolocation, GeoWhatCoordinatesWereYouAt, Some(postSubject),
-                answer, defaultLocation, range)
+              val postSubject = QuestionGenerator.subjectFromPost(post, includeStory = false)
+              val subjectWithHiddenPlace = hidePlace(postSubject, post)
+              GeolocationQuestion(userId, Geolocation, GeoWhatCoordinatesWereYouAt, Some(subjectWithHiddenPlace),
+                answer)
             }
           maybeQuestion match {
             case Some(q) =>
@@ -85,6 +78,30 @@ class WhichCoordinatesWereYouAt(db: DefaultDB) extends QuestionGenerator {
       }
     case any =>
       log.error(s"Wrong message received $any.")
+  }
+
+  private def hidePlace(subject: PostSubject, post: FBPost): PostSubject = {
+    post.place.fold(subject) {
+      place =>
+        val noCountry = replaceNames(place.location.country.getOrElse(""), subject.text)
+        val noCity = replaceNames(place.location.city.getOrElse(""), noCountry)
+        val noStreet = replaceNames(place.location.street.getOrElse(""), noCity)
+        val newText =
+          if (noStreet != subject.text) {
+            val timeFormatter = DateTimeFormat.forPattern("'on the 'yyyy-MM-dd' at 'HH:mm:ss' (UTC)'").withZone(DateTimeZone.UTC)
+            subject.text + " -- " + post.createdTime.map(_.toString(timeFormatter))
+          } else {
+            subject.text
+          }
+        subject.withUpdatedText(newText)
+    }
+  }
+
+  private def replaceNames(names: String, message: String): String = {
+    names.split(" |,").filter(_.nonEmpty).foldLeft(message) {
+      case (acc, name) =>
+        acc.replaceAll(name, "***")
+    }
   }
 
 }

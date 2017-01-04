@@ -56,9 +56,9 @@ class WhenDidYouShareThisPost(db: DefaultDB) extends TimeQuestionGenerator {
         case Success(maybePost) =>
           maybePost match {
             case Some(post) =>
-              val dateString = post.createdTime.getOrElse("1970-01-01'T'00:00:00+0000")
               val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
-              val actualDate = formatter.parseDateTime(dateString)
+              lazy val defaultDate = formatter.parseDateTime("1970-01-01'T'00:00:00+0000")
+              val actualDate = post.createdTime.getOrElse(defaultDate)
               val threshold = 0
               val postSubject = QuestionGenerator.subjectFromPost(post)
               generateRange(actualDate) match {

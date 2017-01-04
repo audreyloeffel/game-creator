@@ -87,23 +87,15 @@ object DatabaseFiller {
     lines.map {
       l =>
         val json = parse(l)
-        // this allows the extract method to work properly
-        val converted = json.mapField {
-          case (field, value) =>
-            if (field == "likeTime") {
-              value.children.headOption match {
-                case Some(str) =>
-                  (field, str)
-                case None =>
-                  (field, value)
-              }
-            } else {
-              (field, value)
-            }
-        }
-        converted.extract[FBPageLikeWithoutDate] match {
-          case FBPageLikeWithoutDate(id, userId, pageId, likeTime) =>
-            FBPageLike(id, userId, pageId, formatter.parseDateTime(likeTime))
+        json match {
+          case pageLike: JObject =>
+            val id = None
+            val userId = (pageLike \ "userId").extract[String]
+            val pageId = (pageLike \ "pageId").extract[String]
+            val likeTimeString = (pageLike \ "likeTime").extract[String]
+            val likeTime = formatter.parseDateTime(likeTimeString)
+
+            FBPageLike(id, userId, pageId, likeTime)
           case _ =>
             throw new IllegalArgumentException("Impossible match case.")
         }
@@ -112,6 +104,7 @@ object DatabaseFiller {
 
   def parsePosts(lines: Iterator[String]): Iterator[FBPost] = lines.map {
     l =>
+      val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
       val json = parse(l)
 
       json match {
@@ -122,7 +115,7 @@ object DatabaseFiller {
           val message = (post \ "message").extractOpt[String]
           val story = (post \ "story").extractOpt[String]
           val place = (post \ "place").extractOpt[FBPlace]
-          val createdTime = (post \ "createdTime").extractOpt[String]
+          val maybeTimeString = (post \ "createdTime").extractOpt[String]
           val from = (post \ "from").extractOpt[FBFrom]
           val reactions = Some((post \ "reactions").extract[List[JObject]].map {
             jObject =>
@@ -138,7 +131,9 @@ object DatabaseFiller {
           val comments = (post \ "comments").extractOpt[List[FBComment]]
           val commentsCount = (post \ "commentsCount").extractOpt[Int]
 
-          FBPost(id, userId, postId, message, story, place, createdTime,
+          val maybeTime = maybeTimeString.map(formatter.parseDateTime)
+
+          FBPost(id, userId, postId, message, story, place, maybeTime,
             from, reactions, reactionCount, tpe, link,
             picture, attachments, comments, commentsCount)
         case _ =>

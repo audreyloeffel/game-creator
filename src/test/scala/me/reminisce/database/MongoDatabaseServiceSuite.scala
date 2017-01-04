@@ -1,12 +1,13 @@
 package me.reminisce.database
 
 import com.github.nscala_time.time.Imports._
-import me.reminisce.database.MongoDBEntities.FBFrom
 import me.reminisce.fetching.config.GraphResponses._
 import org.scalatest.FunSuite
 
 
 class MongoDatabaseServiceSuite extends FunSuite {
+
+  private val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
 
   test("Convert a page to an FBPage") {
     val convertedAllNone = MongoDatabaseService.pageToFBPage(PageTestsData.allNone)
@@ -46,7 +47,7 @@ class MongoDatabaseServiceSuite extends FunSuite {
 
         assert(p.id == PageTestsData.photoId)
         assert(p.source.contains(PageTestsData.photoSource))
-        assert(p.createdTime.contains(PageTestsData.photoCreatedTime))
+        assert(p.createdTime.contains(formatter.parseDateTime(PageTestsData.photoCreatedTime)))
       case None =>
         fail("Photo not extracted.")
     }
@@ -81,7 +82,7 @@ class MongoDatabaseServiceSuite extends FunSuite {
     assert(fbPost.postId == PostTestsData.postId)
     assert(fbPost.message.contains(PostTestsData.postMessage))
     assert(fbPost.story.contains(PostTestsData.postStory))
-    assert(fbPost.createdTime.contains(PostTestsData.postCreatedTime))
+    assert(fbPost.createdTime.contains(formatter.parseDateTime(PostTestsData.postCreatedTime)))
     assert(fbPost.reactionCount.contains(PostTestsData.rootLikes.data.getOrElse(List()).length))
     assert(fbPost.tpe.contains(PostTestsData.postType))
     assert(fbPost.link.contains(PostTestsData.postLink))
@@ -91,7 +92,7 @@ class MongoDatabaseServiceSuite extends FunSuite {
       case Some(place) =>
         assert(place.id.contains(PostTestsData.placeId))
         assert(place.name.contains(PostTestsData.placeName))
-        assert(place.createdTime.contains(PostTestsData.placeCreated))
+        assert(place.createdTime.contains(formatter.parseDateTime(PostTestsData.placeCreated)))
         val loc = place.location
         assert(loc.city.contains(PostTestsData.locationCity))
         assert(loc.country.contains(PostTestsData.locationCountry))

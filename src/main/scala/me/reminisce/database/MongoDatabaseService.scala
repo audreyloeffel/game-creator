@@ -35,15 +35,20 @@ object MongoDatabaseService {
     * @return FBPage resulting from the conversion
     */
   def pageToFBPage(page: Page): FBPage = {
+    lazy val timeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
     val photo = page.photos.flatMap(photoRoot => photoRoot.data.map(photo => photo))
     val fbPhoto = photo.map { photo =>
       val tags = photo.tags.flatMap(tagRoot => tagRoot.data).map {
-        tags => tags.map { tag => {
-          FBTag(tag.id, tag.name, tag.created_time, tag.x, tag.y)
-        }
-        }
+        tags =>
+          tags.map { tag => {
+            FBTag(tag.id, tag.name, tag.created_time, tag.x, tag.y)
+          }
+          }
       }
-      FBPhoto(photo.id, photo.source, photo.created_time, tags)
+
+      val photoTime = photo.created_time.map(timeFormatter.parseDateTime)
+
+      FBPhoto(photo.id, photo.source, photoTime, tags)
     }
     FBPage(None, page.id, page.name, fbPhoto, page.fan_count.getOrElse(0))
   }
@@ -73,9 +78,10 @@ object MongoDatabaseService {
     val reactions = post.reactions.flatMap {
       root =>
         root.data.map {
-          reactions => reactions.map {
-            r => FBReaction(FBFrom(r.id, r.name), stringTypeToReactionType(r.`type`))
-          }.toSet
+          reactions =>
+            reactions.map {
+              r => FBReaction(FBFrom(r.id, r.name), stringTypeToReactionType(r.`type`))
+            }.toSet
         }
     }
     val reactionCount = reactions.map(reactionsList => reactionsList.size)
@@ -89,13 +95,21 @@ object MongoDatabaseService {
         val media = a.media.flatMap(m => m.image.map(image => FBMedia(image.height, image.width, image.src)))
         FBAttachment(a.description, media = media, tpe = a.`type`)
     }))
+
+    lazy val timeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
+
+    val postTime = post.created_time.map(timeFormatter.parseDateTime)
+
     val fbPlace: Option[FBPlace] = post.place.flatMap(place => place.location.flatMap(
-      location => location.latitude.flatMap(lat => location.longitude.flatMap(
-        long => Some(FBPlace(place.id, place.name, FBLocation(location.city, location.country,
-          lat, long, location.street, location.zip), place.created_time))
-      ))
+      location => location.latitude.flatMap(lat => location.longitude.flatMap {
+        long =>
+          val placeTime = place.created_time.map(timeFormatter.parseDateTime)
+          Some(FBPlace(place.id, place.name, FBLocation(location.city, location.country,
+            lat, long, location.street, location.zip), placeTime))
+      })
     ))
-    FBPost(None, userId, post.id, post.message, post.story, fbPlace, post.created_time, fbFrom,
+
+    FBPost(None, userId, post.id, post.message, post.story, fbPlace, postTime, fbFrom,
       reactions, reactionCount, post.`type`, post.link, post.full_picture, fbAttachments, fbComments, fbCommentsCount)
   }
 

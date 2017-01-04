@@ -42,8 +42,7 @@ class WhenDidYouShareThisPostSpec extends QuestionTester("WhenDidYouShareThisPos
           val itemId = "PostId"
           val postMessage = "Awesome Message"
 
-          val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
-          val postedTime = DateTime.now.toString(formatter)
+          val postedTime = DateTime.now(DateTimeZone.UTC)
           val fbPost = FBPost(postId = itemId, userId = userId, attachments = None, message = Some(postMessage),
             createdTime = Some(postedTime))
           Await.result(postsCollection.update(fbPost, fbPost, WriteConcern.Acknowledged, upsert = true), Duration(10, TimeUnit.SECONDS))
@@ -52,13 +51,14 @@ class WhenDidYouShareThisPostSpec extends QuestionTester("WhenDidYouShareThisPos
           val testProbe = TestProbe()
           testProbe.send(actorRef, CreateQuestion(userId, itemId))
 
+          val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(DateTimeZone.UTC)
           checkFinished[TimelineQuestion](testProbe) {
             question =>
               checkSubject[TextPostSubject](question.subject) {
                 subject =>
                   val answer = question.answer
                   assert(subject.text == fbPost.message.getOrElse(""))
-                  assert(postedTime == answer)
+                  assert(postedTime.toString(formatter) == answer)
               }
           }
       }
