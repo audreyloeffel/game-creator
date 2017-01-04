@@ -3,7 +3,7 @@ package me.reminisce.gameboard.board
 import me.reminisce.database.MongoDBEntities.{FBFrom, FBLocation}
 import me.reminisce.server.domain.RestMessage
 import me.reminisce.server.jsonserializer.NamedClassSerialization.NamedCaseClass
-
+import me.reminisce.analysis.DataTypes.ReactionType
 /**
   * Defines the data types used to represent a game board.
   */
@@ -37,6 +37,7 @@ object GameboardEntities {
   case object ORDPostLikesNumber extends SpecificQuestionType("ORDPostLikesNumber")
   case object ORDPostTime extends SpecificQuestionType("ORDPostTime")
   case object ORDPageLikeTime extends SpecificQuestionType("ORDPageLikeTime")
+  case object ORDPostReactionsNumber extends SpecificQuestionType("ORDPostReactionsNumber")
 
   def strToType(string: String): SpecificQuestionType = string match {
     case TLWhenDidYouShareThisPost.name => TLWhenDidYouShareThisPost
@@ -53,6 +54,7 @@ object GameboardEntities {
     case MCWhoReactedToYourPostWithANGRY.name => MCWhoReactedToYourPostWithANGRY
     case ORDPageLikes.name => ORDPageLikes
     case ORDPageLikeTime.name => ORDPageLikeTime
+    case ORDPostReactionsNumber.name => ORDPostReactionsNumber
     case MCWhoIsYourFriend.name => MCWhoIsYourFriend
   }
 
@@ -104,6 +106,7 @@ object GameboardEntities {
   case object LinkPost extends SubjectType("LinkPost")
   case object CommentSubject extends SubjectType("Comment")
   case object Empty extends SubjectType("Empty")
+  case object Reactions extends SubjectType("Reactions")
 
   def strToSubjectType(string: String): SubjectType = string match {
     case PageSubject.name => PageSubject
@@ -113,6 +116,7 @@ object GameboardEntities {
     case LinkPost.name => LinkPost
     case CommentSubject.name => CommentSubject
     case Empty.name => Empty
+    case Reactions.name => Reactions
   }
 
   /**
@@ -163,6 +167,7 @@ object GameboardEntities {
 
   case class CommentSubject(comment: String, post: PostSubject, `type`: SubjectType = CommentSubject) extends Subject(`type`)
   case object EmptySubject extends Subject(Empty)
+  case class ReactionSubject(reactionType: ReactionType) extends Subject(Reactions)
 
   /**
     * Abstract game question

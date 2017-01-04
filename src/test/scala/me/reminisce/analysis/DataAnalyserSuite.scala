@@ -192,8 +192,8 @@ class DataAnalyserSuite extends FunSuite {
     val newReactioners: Set[AbstractReaction] = (11 to 20).map(nb => FBReaction(FBFrom(s"user$nb", s"name$nb"), PostWhoLiked)).toSet
     assert(oldReactioners != newReactioners)
 
-    val oldDataTypes = Map[DataType, Int](PostGeolocation -> 2, PostWhoCommented -> 4, PostWhoReacted -> 13) // linked with below counts
-    val newDataTypes = List[(DataType, Int)]((PostWhoReacted, 7), (PageLikeNumber -> 17)) // prime number is important to test the rounding
+    val oldDataTypes = Map[DataType, Int](PostGeolocation -> 2, PostWhoCommented -> 4, PostWhoReacted -> 13, PostReactionsOrder -> 0, FriendWhoIsYours -> 0) // linked with below counts
+    val newDataTypes = List[(DataType, Int)]((PostWhoReacted, 7), (PageLikeNumber -> 15)) // prime number is important to test the rounding
     val newItemsSummaries = newDataTypes.flatMap {
       case (tpe, count) => (1 to count).map {
         any => ItemSummary(userId = userId, itemId = s"item$userId", itemType = PostType, dataTypes = Set(tpe), dataCount = 1)

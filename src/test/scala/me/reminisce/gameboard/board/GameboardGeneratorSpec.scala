@@ -54,7 +54,7 @@ class GameboardGeneratorSpec extends DatabaseTester("GameBoardGeneratorSpec") {
                       validateQuestion(tile.question3)
                   }
                 case any =>
-                  println(s"Received : $any")
+                  fail(s"Received : $any")
               }
           }
       }

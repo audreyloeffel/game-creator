@@ -2,14 +2,15 @@ package me.reminisce.analysis
 
 import me.reminisce.collections.MapExtension._
 import me.reminisce.gameboard.board.GameboardEntities._
+import me.reminisce.server.jsonserializer.NamedClassSerialization.NamedCaseClass
 
 /**
   * Defines the data types necessary to generate the user summaries.
   */
 object DataTypes {
 
-  sealed abstract class DataType(id: String) {
-    val name: String = id
+  sealed abstract class DataType(id: String) extends NamedCaseClass {
+    override val name: String = id
   }
 
   // Post only
@@ -18,6 +19,8 @@ object DataTypes {
   case object PostCommentsNumber extends DataType("PostCommentsNumber")
 
   case object PostReactionNumber extends DataType("PostReactionNumber")
+
+  case object PostReactionsOrder extends DataType("PostReactionsOrder")
 
   // Reactions
   abstract class ReactionType(id: String) extends DataType(id)
@@ -74,7 +77,7 @@ object DataTypes {
     Geolocation ->
       List(PostGeolocation),
     Order ->
-      List(PageLikeNumber)
+      List(PostReactionsOrder, PageLikeNumber)
   )
 
   val typeToKinds = kindToTypes.reverse
@@ -103,6 +106,7 @@ object DataTypes {
     case PageLikeNumber.name => PageLikeNumber
     case FriendWhoIsYours.name => FriendWhoIsYours
     case Time.name => Time
+    case PostReactionsOrder.name => PostReactionsOrder
   }
 
   def possibleReactions = Set[ReactionType](

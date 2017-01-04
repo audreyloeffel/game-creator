@@ -46,7 +46,7 @@ class TileGenerator(db: DefaultDB) extends QuestionGenerator {
           val maybeGenerator = questionInference((questionKind, dataType, itemIdTypes))
           maybeGenerator match {
             case Some(generator) =>
-              if (questionKind == Order) {
+              if (questionKind == Order && dataType != PostReactionsOrder) {
                 generator ! CreateQuestionWithMultipleItems(userId, itemIdTypes.map {
                   case (itemId, itemType) => itemId
                 })
@@ -80,6 +80,8 @@ class TileGenerator(db: DefaultDB) extends QuestionGenerator {
           tpe match {
             case PageLikeNumber =>
               Some(context.actorOf(OrderByPageLikes.props(db)))
+            case PostReactionsOrder =>
+              Some(context.actorOf(OrderByReactions.props(db)))
             case _ =>
               None
           }

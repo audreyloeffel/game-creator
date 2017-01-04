@@ -138,7 +138,7 @@ abstract class RandomBoardGenerator(database: DefaultDB, userId: String, strateg
               findSomeRandom[ItemSummary](itemsSummariesCollection, query, client) {
                 itemsSummaries =>
                   cKind match {
-                    case Order =>
+                    case Order if cType != PostReactionsOrder =>
                       if (itemsSummaries.length >= orderingItemsNumber * current.length) {
                         // groups the retrieved summary by item type
                         val groups = itemsSummaries.groupBy(is => is.itemType).toList.map {

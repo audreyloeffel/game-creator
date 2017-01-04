@@ -9,7 +9,7 @@ import me.reminisce.analysis.DataTypes._
 import me.reminisce.database.AnalysisEntities.{ItemSummary, UserSummary}
 import me.reminisce.database.MongoCollections
 import me.reminisce.database.MongoDBEntities._
-import me.reminisce.fetching.config.GraphResponses.{Friend, Post}
+import me.reminisce.fetching.config.GraphResponses.{Friend, Post, Reaction}
 import me.reminisce.gameboard.board.GameboardEntities.{Order, QuestionKind}
 import me.reminisce.gameboard.questions.QuestionGenerationConfig
 import me.reminisce.server.domain.Domain.{AckBlackList, FailedBlacklist}
@@ -44,7 +44,7 @@ object DataAnalyser {
   def props(userId: String, db: DefaultDB): Props =
   Props(new DataAnalyser(userId, db))
 
-  private val transientDataTypes = Set[DataType](Time, PostGeolocation, PostCommentsNumber, PostReactionNumber)
+  private val transientDataTypes = Set[DataType](Time, PostGeolocation, PostCommentsNumber, PostReactionNumber, PostReactionsOrder)
 
   private val analysingFor = new ConcurrentHashMap[String, Boolean]()
 
@@ -90,8 +90,8 @@ object DataAnalyser {
     * @return a list of data types
     */
   def availableDataTypes(post: Post): Set[DataType] = {
-    Set(hasTimeData(post), hasGeolocationData(post), hasCommentNumber(post), hasReactionsNumber(post)).flatten
-  }
+    Set(hasTimeData(post), hasGeolocationData(post), hasReactionsNumber(post), hasCommentNumber(post), hasReactionsOrder(post)).flatten
+ }
 
   /**
     * Checks if post has time data
@@ -136,7 +136,6 @@ object DataAnalyser {
       None
     }
   }
-
   /**
     * Checks if post has reactions
     *
@@ -151,6 +150,18 @@ object DataAnalyser {
       None
     }
   }
+  private def hasReactionsOrder(post: Post): Option[DataType] = {
+    
+    val availableReactions = post.reactions.flatMap(root => root.data).getOrElse(List()).groupBy{
+      case Reaction(_, _ , tpe) => tpe
+    }
+
+    if(availableReactions.size >= 3) {
+      Some(PostReactionsOrder)
+    } else {
+      None
+    }
+  } 
 
   /**
     * Get item summary for user id and item id in a list of item summaries. Returns a default value if nothing is found
@@ -185,7 +196,12 @@ object DataAnalyser {
                                userSummary: UserSummary): UserSummary = {
     val notFriendReactionersNumber = newReactioners.filterNot(react => (friends.exists(friend => friend.name == react.from.userName) || react.from.userId == userSummary.userId)).size
     val newDataTypes = newItemsSummaries.foldLeft(userSummary.dataTypeCounts) {
-      case (acc, itemSummary) => addTypesToMap[DataType](itemSummary.dataTypes.map(dType => (dType, 1)), acc)
+      case (acc, itemSummary) => 
+      val newDTypes = itemSummary.dataTypes.map {
+        case PostReactionsOrder => (PostReactionsOrder, QuestionGenerationConfig.orderingItemsNumber)
+        case dType => (dType, 1)
+      }
+      addTypesToMap[DataType](newDTypes, acc)
     }  ++ (if(notFriendReactionersNumber >= 3) Map(FriendWhoIsYours -> friends.size) else Map())
     
     // One has to be careful as the count for order is just the count of items that have a data type suited for ordering
@@ -195,14 +211,7 @@ object DataAnalyser {
         val kinds = typeToKinds.getOrElse(tpe, List())
         val newCounts = kinds.map {
           kind =>
-            val count = kind match {
-              case Order =>
-                val excess = cnt % QuestionGenerationConfig.orderingItemsNumber
-                cnt - excess
-              case _ =>
-                cnt
-            }
-            (kind, count)
+            (kind, cnt)
         }
         addTypesToMap[QuestionKind](newCounts, acc)
     }

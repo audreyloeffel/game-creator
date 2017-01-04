@@ -1,6 +1,7 @@
 package me.reminisce.server.jsonserializer
 
 import me.reminisce.gameboard.board.GameboardEntities._
+import me.reminisce.analysis.DataTypes._
 import me.reminisce.server.jsonserializer.NamedClassSerialization.NamedClassSerializer
 import org.json4s._
 import org.json4s.ext.JodaTimeSerializers
@@ -12,5 +13,6 @@ trait GameCreatorFormatter {
 
   implicit lazy val json4sFormats: Formats = DefaultFormats ++ JodaTimeSerializers.all +
     new NamedClassSerializer[QuestionKind](strToKind) + new NamedClassSerializer[SpecificQuestionType](strToType) +
-    new NamedClassSerializer[TimeUnit](strToTimeUnit) + new NamedClassSerializer[SubjectType](strToSubjectType)
+    new NamedClassSerializer[TimeUnit](strToTimeUnit) + new NamedClassSerializer[SubjectType](strToSubjectType) +
+    new NamedClassSerializer[DataType](stringToType)
 }
